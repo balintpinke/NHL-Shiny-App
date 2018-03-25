@@ -4,7 +4,7 @@ server <- function(input, output) {
   
   # Filter data based on selections
   output$table <- DT::renderDataTable(DT::datatable({
-    data <- select(NHL, First.Name, Last.Name, Nat, Team, GP, G, A, PTS, PlusMinus, Position1, Salary)
+    data <- NHL
     
     if (input$name != "All") {
       data <- data[data$Last.Name == input$name,]
