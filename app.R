@@ -1,14 +1,27 @@
+library(ggplot2)
+library(shiny)
+
 NHL <- read.csv("NHL_cleaned.csv", sep =";", header = TRUE)
-NHL_num <- select(NHL, Age, GP, G,A, PTS, PlusMinus, Salary)
+NHL_num <- read.csv("NHL_num.csv", sep =";", header = TRUE)
+
+# output$mainplot <- renderPlot({
+#   
+#   p <- ggplot(dataset[dataset$price <= 326,], aes(x = carat, y = color))
+#   p <- p + geom_point()
+#   print(p)
+# })
+# })
+
 
 server <- function(input, output) {
   output$plot <- renderPlot({
-    ggplot(NHL, 
+    p <- ggplot(NHL, 
            aes(x = NHL_num[,input$xcol],
                y = NHL_num[,input$ycol],
-               color = NHL_num[,input$filter] > input$number)) +
-      geom_point() + 
-      geom_smooth(method = "lm")
+               color = NHL_num[,input$filter] > input$number)) 
+    p <- p + geom_point()
+    p <- p + geom_smooth(method = "lm")
+    print(p)
   })
   
   output$summary <- renderPrint({
@@ -38,8 +51,7 @@ server <- function(input, output) {
 #   content = function(file) {
 #     write.csv(data, file, row.names = TRUE)})
 
-ui <- fluidPage(theme = shinytheme("united"),
-                navbarPage("NHL Statistics 2016/17",
+ui <- navbarPage("NHL Statistics 2016/17",
                            tabPanel("Interactive Plot",
                                     sidebarLayout(
                                       sidebarPanel(
@@ -85,6 +97,6 @@ ui <- fluidPage(theme = shinytheme("united"),
                                              ),
                                              DT::dataTableOutput("table"),
                                              downloadButton("downloadData", "Download")
-                                    ))))
+                                    )))
 
 shinyApp(server = server, ui = ui)
