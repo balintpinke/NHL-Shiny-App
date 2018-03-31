@@ -1,25 +1,19 @@
 library(ggplot2)
+library(dplyr)
 library(shiny)
 library(shinythemes)
 
 NHL <- read.csv("NHL_cleaned.csv", sep =";", header = TRUE)
-NHL_num <- read.csv("NHL_num.csv", sep =";", header = TRUE)
 
-# output$mainplot <- renderPlot({
-#   
-#   p <- ggplot(dataset[dataset$price <= 326,], aes(x = carat, y = color))
-#   p <- p + geom_point()
-#   print(p)
-# })
-# })
-
+# num <- select_if(NHL, is.numeric)
+# factor <- select_if(NHL, is.factor)
 
 server <- function(input, output) {
   output$plot <- renderPlot({
     p <- ggplot(NHL, 
-           aes(x = NHL_num[,input$xcol],
-               y = NHL_num[,input$ycol],
-               color = NHL_num[,input$filter] > input$number)) 
+           aes(x = select_if(NHL, is.numeric)[,input$xcol],
+               y = select_if(NHL, is.numeric)[,input$ycol],
+               color = select_if(NHL, is.numeric)[,input$filter] > input$number)) 
     p <- p + geom_point()
     p <- p + geom_smooth(method = "lm")
     print(p)
@@ -52,17 +46,20 @@ server <- function(input, output) {
 #   content = function(file) {
 #     write.csv(data, file, row.names = TRUE)})
 
+
+
+
 ui <- fluidPage(theme = shinytheme("united"),
       navbarPage("NHL Statistics 2016/17",
                            tabPanel("Interactive Plot",
                                     sidebarLayout(
                                       sidebarPanel(
                                         selectInput("xcol", "X Variable", 
-                                                    choices=colnames(NHL_num)),
+                                                    choices=colnames(select_if(NHL, is.numeric))),
                                         selectInput("ycol", "Y Variable", 
-                                                    choices=colnames(NHL_num)),
+                                                    choices=colnames(select_if(NHL, is.numeric))),
                                         selectInput("filter", "Filter Numeric Variable", 
-                                                    choices=colnames(NHL_num)),
+                                                    choices=colnames(select_if(NHL, is.numeric))),
                                         numericInput('number', 'Numeric value for filter Numeric Variable', 3,    ###vmilyen szûrési lehetõség
                                                      min = 1, max = 100)
                                       ),
