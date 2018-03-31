@@ -1,5 +1,6 @@
 library(ggplot2)
 library(shiny)
+library(shinythemes)
 
 NHL <- read.csv("NHL_cleaned.csv", sep =";", header = TRUE)
 NHL_num <- read.csv("NHL_num.csv", sep =";", header = TRUE)
@@ -51,7 +52,8 @@ server <- function(input, output) {
 #   content = function(file) {
 #     write.csv(data, file, row.names = TRUE)})
 
-ui <- navbarPage("NHL Statistics 2016/17",
+ui <- fluidPage(theme = shinytheme("united"),
+      navbarPage("NHL Statistics 2016/17",
                            tabPanel("Interactive Plot",
                                     sidebarLayout(
                                       sidebarPanel(
@@ -97,6 +99,6 @@ ui <- navbarPage("NHL Statistics 2016/17",
                                              ),
                                              DT::dataTableOutput("table"),
                                              downloadButton("downloadData", "Download")
-                                    )))
+                                    ))))
 
 shinyApp(server = server, ui = ui)
