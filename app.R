@@ -2,21 +2,19 @@ library(ggplot2)
 library(dplyr)
 library(shiny)
 library(shinythemes)
+library(plotly)
 
 NHL <- read.csv("NHL_cleaned.csv", sep =";", header = TRUE)
 
-# num <- select_if(NHL, is.numeric)
-# factor <- select_if(NHL, is.factor)
-
 server <- function(input, output) {
-  output$plot <- renderPlot({
+  output$plot <- renderPlotly({
     p <- ggplot(NHL, 
            aes(x = select_if(NHL, is.numeric)[,input$xcol],
                y = select_if(NHL, is.numeric)[,input$ycol],
                color = select_if(NHL, is.numeric)[,input$filter] > input$number)) 
     p <- p + geom_point()
     p <- p + geom_smooth(method = "lm")
-    print(p)
+    ggplotly(p)
   })
   
   output$summary <- renderPrint({
@@ -48,7 +46,6 @@ server <- function(input, output) {
 
 
 
-
 ui <- fluidPage(theme = shinytheme("united"),
       navbarPage("NHL Statistics 2016/17",
                            tabPanel("Interactive Plot",
@@ -60,14 +57,23 @@ ui <- fluidPage(theme = shinytheme("united"),
                                                     choices=colnames(select_if(NHL, is.numeric))),
                                         selectInput("filter", "Filter Numeric Variable", 
                                                     choices=colnames(select_if(NHL, is.numeric))),
-                                        numericInput('number', 'Numeric value for filter Numeric Variable', 3,    ###vmilyen szûrési lehetõség
+                                        numericInput('number', 'Numeric value for filter Numeric Variable', 3,
                                                      min = 1, max = 100)
                                       ),
                                       mainPanel(
-                                        plotOutput("plot")
+                                        plotlyOutput("plot")
                                       )
                                     )
                            ),
+                           tabPanel("Radar plot",
+                                    selectInput("player1", "Player 1", 
+                                                choices=NHL$fullname),
+                                    selectInput("player2", "Player 2", 
+                                                choices=NHL$fullname),
+                                    selectInput("plaer3", "Player 3", 
+                                                choices=NHL$fullname)
+                             
+                             ),
                            tabPanel("Descriptive Stats",
                                     verbatimTextOutput("summary")
                            ),
