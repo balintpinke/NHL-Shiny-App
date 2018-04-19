@@ -3,6 +3,8 @@ library(dplyr)
 library(shiny)
 library(shinythemes)
 library(radarchart)
+library(d3heatmap)
+
 
 NHL <- read.csv("NHL_cleaned.csv", sep =";", header = TRUE)
 
@@ -24,6 +26,16 @@ server <- function(input, output) {
   output$radar <- renderChartJSRadar({
     chartJSRadar(NHL[, c("Label", input$player1)], 
                  maxScale = 10, showToolTipLabel=TRUE)
+  })
+  
+  output$heatmap <- renderD3heatmap({
+    d3heatmap(
+      scale(),
+      colors = input$palette,
+      dendrogram = if (input$cluster) "both" else "none",
+      k_row = input$cluster_row,
+      k_col = input$cluster_col
+    )
   })
   
   output$summary <- renderPrint({
@@ -86,6 +98,15 @@ ui <- fluidPage(theme = shinytheme("united"),
                                     )
                              
                              ),
+                          tabPanel("A heatmap demo",
+                                    selectInput("palette", "Palette", c("YlOrRd", "RdYlBu", "Greens", "Blues")),
+                                    checkboxInput("cluster", "Apply clustering"),
+                                    sliderInput('cluster_row', 'Set group number for rows', 2,
+                                                 min = 1, max = 10),
+                                    sliderInput('cluster_col', 'Set group number for columns', 4,
+                                                 min = 1, max = 10),
+                                    d3heatmapOutput("heatmap")
+                            ),
                            tabPanel("Descriptive Stats",
                                     verbatimTextOutput("summary")
                            ),
