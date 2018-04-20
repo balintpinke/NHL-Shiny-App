@@ -5,18 +5,28 @@ library(shinythemes)
 library(radarchart)
 library(d3heatmap)
 
-
-NHL <- read.csv("NHL_cleaned.csv", sep =";", header = TRUE)
+NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
 
 server <- function(input, output) {
   output$plot <- renderPlot({
-    p <- ggplot(NHL, 
-           aes(x = select_if(NHL, is.numeric)[,input$xcol],
-               y = select_if(NHL, is.numeric)[,input$ycol],
-               color = select(NHL, Age, GP:PlusMinus, TOI.GP, PIM)[,input$filter] > input$number)) 
-    p <- p + geom_point()
-    p <- p + geom_smooth(method = "lm") 
-    p <- p + labs(title = "2D plot with filter variable")
+    p <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$xcol],
+                         y = select_if(NHL, is.numeric)[,input$ycol])) + geom_point()
+    
+    if (input$filter != "None")
+      p <- p + aes(color = select(NHL, Age, GP:PlusMinus, TOI.GP, PIM)[,input$filter] > input$number) 
+    
+    if (input$smooth)
+      p <- p + geom_smooth(method = "loess", se = FALSE, color = "Red")
+    
+    if (input$linear)
+      p <- p + geom_smooth(method = "lm", se = FALSE)
+    
+    facets <- paste(input$facet_row, "~", ".")
+    if (facets != '. ~ .')
+    p <- p + facet_grid(facets)
+    
+    #p <- p + geom_smooth(method = "lm") 
+    
     p <- p + xlab(paste(input$xcol, collapse = " "))
     p <- p + ylab(paste(input$ycol,collapse = " "))
     #p <- p + labs(paste(input$filter > input$number, collapse = " " ))
@@ -25,12 +35,12 @@ server <- function(input, output) {
   
   output$radar <- renderChartJSRadar({
     chartJSRadar(NHL[, c("Label", input$player1)], 
-                 maxScale = 10, showToolTipLabel=TRUE)
+                 maxScale = 10, showToolTipLabel = TRUE)
   })
   
   output$heatmap <- renderD3heatmap({
     d3heatmap(
-      scale(),
+      scale(mtcars),
       colors = input$palette,
       dendrogram = if (input$cluster) "both" else "none",
       k_row = input$cluster_row,
@@ -66,33 +76,35 @@ server <- function(input, output) {
 #     write.csv(data, file, row.names = TRUE)})
 
 
-
 ui <- fluidPage(theme = shinytheme("united"),
       navbarPage("NHL Statistics 2016/17",
                            tabPanel("Interactive Plot",
                                     sidebarLayout(
                                       sidebarPanel(
                                         selectInput("xcol", "X Variable", 
-                                                    choices=colnames(select_if(NHL, is.numeric))),
+                                                    choices = colnames(select_if(NHL, is.numeric))),
                                         selectInput("ycol", "Y Variable", 
-                                                    choices=colnames(select_if(NHL, is.numeric))),
+                                                    choices = colnames(select_if(NHL, is.numeric))),
                                         selectInput("filter", "Filter Variable", 
-                                                    choices=colnames(select(NHL, Age, GP:PlusMinus, TOI.GP, PIM))),
+                                                    choices = c("None", colnames((select(NHL, Age, GP:PlusMinus, TOI.GP, PIM))))),
                                         sliderInput('number', 'set value for filter variable', 25,
-                                                     min = 0, max = 100)
-                                      ),
+                                                     min = 0, max = 100),
+                                        checkboxInput('linear', 'Linear'),
+                                        checkboxInput('smooth', 'Smooth'),
+                                        selectInput('facet_row', 'Facet Row', c(None = '.', "Position1"))
+                                        ),
                                       mainPanel(
-                                        plotOutput("plot")
+                                        plotOutput("plot", width = "100%")
                                       )
                                     )
                            ),
                            tabPanel("Radar plot",
                                     selectInput("player1", "Player 1", 
-                                                choices=NHL$Name),
+                                                choices = NHL$Name),
                                     selectInput("player2", "Player 2", 
-                                                choices=NHL$Name),
+                                                choices = NHL$Name),
                                     selectInput("plaer3", "Player 3", 
-                                                choices=NHL$Name),
+                                                choices = NHL$Name),
                                     mainPanel(
                                       chartJSRadarOutput("radar", width = "450", height = "300"), width = 7
                                     )
