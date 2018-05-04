@@ -51,7 +51,7 @@ server <- function(input, output) {
   output$radar <- renderChartJSRadar({
     
     chartJSRadar(Goals2[, c("Label", input$player1, input$player2, input$player3)],
-                 maxScale = 15, scaleLineWidth = 2, showToolTipLabel = TRUE)
+                 maxScale = 20, scaleLineWidth = 2, showToolTipLabel = TRUE)
   })
   
  
@@ -124,7 +124,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                     selectInput("player3", "Player 3", 
                                                 choices = names(Goals2)[2:889]),
                                     mainPanel(
-                                      chartJSRadarOutput("radar", width = "450", height = "300"), width = 7
+                                      chartJSRadarOutput("radar", width = "450", height = "300"), width = 9
                                     )
                              
                              ),
