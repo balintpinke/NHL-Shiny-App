@@ -1,5 +1,5 @@
-library(ggplot2)
-library(dplyr)
+
+library(tidyverse)
 library(shiny)
 library(shinythemes)
 library(radarchart)
@@ -7,13 +7,28 @@ library(d3heatmap)
 
 NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
 
+#rownames(NHL) <- NHL[,1]
+
+Goals <- select(NHL,Name, G.Bkhd:G.Wrst)
+rownames(Goals) <- Goals[,1]
+Goals[,1] <- NULL
+Goals2 <- data.frame(t(Goals))      
+Goals2 <- data.frame(Label = row.names(Goals2), Goals2)
+rownames(Goals2) <- NULL
+
+
+
+
 server <- function(input, output) {
   output$plot <- renderPlot({
     p <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$xcol],
                          y = select_if(NHL, is.numeric)[,input$ycol])) + geom_point()
     
     if (input$filter != "None")
-      p <- p + aes(color = select(NHL, Age, GP:PlusMinus, TOI.GP, PIM)[,input$filter] > input$number) 
+      p <- p + aes(color = select(NHL, Age, GP:PlusMinus, TOI.GP, PIM)[,input$filter] > input$number)
+    
+    if (input$color != 'None')
+      p <- p + aes_string(color = input$color)
     
     if (input$smooth)
       p <- p + geom_smooth(method = "loess", se = FALSE, color = "Red")
@@ -34,13 +49,15 @@ server <- function(input, output) {
   })
   
   output$radar <- renderChartJSRadar({
-    chartJSRadar(NHL[, c("Label", input$player1)], 
-                 maxScale = 10, showToolTipLabel = TRUE)
+    
+    chartJSRadar(Goals2[, c("Label", input$player1, input$player2, input$player3)],
+                 maxScale = 15, scaleLineWidth = 2, showToolTipLabel = TRUE)
   })
   
+ 
   output$heatmap <- renderD3heatmap({
     d3heatmap(
-      scale(mtcars),
+      scale(has_rownames(filter(select(NHL, Age, G, A, PTS, PlusMinus, TOI.GP, PIM, X.FOT:ozFOL), PTS > 10))),
       colors = input$palette,
       dendrogram = if (input$cluster) "both" else "none",
       k_row = input$cluster_row,
@@ -89,6 +106,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                                     choices = c("None", colnames((select(NHL, Age, GP:PlusMinus, TOI.GP, PIM))))),
                                         sliderInput('number', 'set value for filter variable', 25,
                                                      min = 0, max = 100),
+                                        selectInput('color', 'Color', c('None', 'Position1')),
                                         checkboxInput('linear', 'Linear'),
                                         checkboxInput('smooth', 'Smooth'),
                                         selectInput('facet_row', 'Facet Row', c(None = '.', "Position1"))
@@ -100,11 +118,11 @@ ui <- fluidPage(theme = shinytheme("united"),
                            ),
                            tabPanel("Radar plot",
                                     selectInput("player1", "Player 1", 
-                                                choices = NHL$Name),
+                                                choices = names(Goals2)[2:889]),
                                     selectInput("player2", "Player 2", 
-                                                choices = NHL$Name),
-                                    selectInput("plaer3", "Player 3", 
-                                                choices = NHL$Name),
+                                                choices = names(Goals2)[2:889]),
+                                    selectInput("player3", "Player 3", 
+                                                choices = names(Goals2)[2:889]),
                                     mainPanel(
                                       chartJSRadarOutput("radar", width = "450", height = "300"), width = 7
                                     )
@@ -112,6 +130,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                              ),
                           tabPanel("A heatmap demo",
                                     selectInput("palette", "Palette", c("YlOrRd", "RdYlBu", "Greens", "Blues")),
+                                    selectInput("top10", "Select the top 10 player in that stat", 
+                                               choices = colnames(select_if(NHL, is.numeric))),
                                     checkboxInput("cluster", "Apply clustering"),
                                     sliderInput('cluster_row', 'Set group number for rows', 2,
                                                  min = 1, max = 10),
