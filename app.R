@@ -17,9 +17,35 @@ Goals2 <- data.frame(Label = row.names(Goals2), Goals2)
 rownames(Goals2) <- NULL
 
 
+top10_pts <- select(NHL, Name, Age, G, A, PTS, PlusMinus, TOI.GP, PIM, X.FOT:ozFOL) %>% 
+  top_n(10, PTS)
+rownames(top10_pts) <- top10_pts[,1]
+top10_pts[,1] <- NULL
 
 
 server <- function(input, output) {
+  
+  output$simpleplot <- renderPlot({
+    k <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$stats]))
+    k <- k + geom_histogram()
+    print(k)
+  })
+  
+  output$boxplot <- renderPlot({
+    t <- ggplot(NHL, aes(Position1, y = select_if(NHL, is.numeric)[,input$stats2]), fill = Position1)
+    t <- t + geom_boxplot()
+    
+    print(t)
+  })
+  
+  output$violin <- renderPlot({
+    q <- ggplot(filter(NHL, Team == aes_string(input$team)), aes(Position1, y = select_if(NHL, is.numeric)[,input$stats3]), fill = Position1)
+    q <- q + geom_violin()
+    
+    print(q)
+  })
+  
+  
   output$plot <- renderPlot({
     p <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$xcol],
                          y = select_if(NHL, is.numeric)[,input$ycol])) + geom_point()
@@ -49,7 +75,6 @@ server <- function(input, output) {
   })
   
   output$radar <- renderChartJSRadar({
-    
     chartJSRadar(Goals2[, c("Label", input$player1, input$player2, input$player3)],
                  maxScale = 20, scaleLineWidth = 2, showToolTipLabel = TRUE)
   })
@@ -57,7 +82,7 @@ server <- function(input, output) {
  
   output$heatmap <- renderD3heatmap({
     d3heatmap(
-      scale(has_rownames(filter(select(NHL, Age, G, A, PTS, PlusMinus, TOI.GP, PIM, X.FOT:ozFOL), PTS > 10))),
+      scale(top10_pts),
       colors = input$palette,
       dendrogram = if (input$cluster) "both" else "none",
       k_row = input$cluster_row,
@@ -65,9 +90,16 @@ server <- function(input, output) {
     )
   })
   
-  output$summary <- renderPrint({
-    summary(NHL)
-  })
+  # output$summary <- renderPlot({
+  #   k <- ggplot(NHL, aes(x = select_if(NHL, is.factor)[,input$char],
+  #                        y = select_if(NHL, is.numeric)[,input$num]
+  #                        )) +
+  #         geom_boxplot()
+  # })
+  # 
+  
+  
+  
   
   output$table <- DT::renderDataTable(DT::datatable({
     data <- NHL[,1:12]
@@ -95,13 +127,32 @@ server <- function(input, output) {
 
 ui <- fluidPage(theme = shinytheme("united"),
       navbarPage("NHL Statistics 2016/17",
-                           tabPanel("Interactive Plot",
+                           tabPanel("Simple plot",
+                                        selectInput("stats", "Statistics on histogram",
+                                                         choices = colnames(select_if(NHL, is.numeric))),
+                                             mainPanel(
+                                              plotOutput("simpleplot", width = "100%"),
+                                              
+                                        selectInput("stats2", "Statistics by positions",
+                                                          choices = colnames(select_if(NHL, is.numeric))),
+                                             mainPanel(
+                                               plotOutput("boxplot", width = "100%"),
+                                        
+                                        selectInput("stats3", "Statistics",
+                                                           choices = colnames(select_if(NHL, is.numeric))),
+                                        selectInput("team", "Statistics by teams",
+                                                           choices = unique(NHL$Team))),
+                                             mainPanel(
+                                               plotOutput("violin", width = "100%")
+                                             ))
+                            ),
+                           tabPanel("Interactive plot",
                                     sidebarLayout(
                                       sidebarPanel(
                                         selectInput("xcol", "X Variable", 
                                                     choices = colnames(select_if(NHL, is.numeric))),
                                         selectInput("ycol", "Y Variable", 
-                                                    choices = colnames(select_if(NHL, is.numeric))),
+                                                     choices = colnames(select_if(NHL, is.numeric))),
                                         selectInput("filter", "Filter Variable", 
                                                     choices = c("None", colnames((select(NHL, Age, GP:PlusMinus, TOI.GP, PIM))))),
                                         sliderInput('number', 'set value for filter variable', 25,
@@ -115,8 +166,8 @@ ui <- fluidPage(theme = shinytheme("united"),
                                         plotOutput("plot", width = "100%")
                                       )
                                     )
-                           ),
-                           tabPanel("Radar plot",
+                            ),
+                           tabPanel("Radar chart",
                                     selectInput("player1", "Player 1", 
                                                 choices = names(Goals2)[2:889]),
                                     selectInput("player2", "Player 2", 
@@ -128,7 +179,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                     )
                              
                              ),
-                          tabPanel("A heatmap demo",
+                          tabPanel("Heatmap",
                                     selectInput("palette", "Palette", c("YlOrRd", "RdYlBu", "Greens", "Blues")),
                                     selectInput("top10", "Select the top 10 player in that stat", 
                                                choices = colnames(select_if(NHL, is.numeric))),
@@ -139,9 +190,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                                  min = 1, max = 10),
                                     d3heatmapOutput("heatmap")
                             ),
-                           tabPanel("Descriptive Stats",
-                                    verbatimTextOutput("summary")
-                           ),
+                           
                            tabPanel("Search in the data",
                                     tabPanel("Table",
                                              # Create a new Row in the UI for selectInputs
