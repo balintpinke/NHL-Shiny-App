@@ -4,6 +4,7 @@ library(shiny)
 library(shinythemes)
 library(radarchart)
 library(d3heatmap)
+library(plotly)
 
 NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
 
@@ -25,21 +26,29 @@ top10_pts[,1] <- NULL
 
 server <- function(input, output) {
   
-  output$simpleplot <- renderPlot({
+  output$simpleplot <- renderPlotly({
     k <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$stats]))
-    k <- k + geom_histogram()
-    print(k)
+    k <- k + geom_bar()
+    k <- k + xlab(paste(input$stats, collapse = " "))
+    ggplotly(k, tooltip = "y")
   })
   
-  output$boxplot <- renderPlot({
+  
+  output$boxplot <- renderPlotly({
     t <- ggplot(NHL, aes(Position1, y = select_if(NHL, is.numeric)[,input$stats2]), fill = Position1)
     t <- t + geom_boxplot()
-    
-    print(t)
+    t <- t + ylab(paste(input$stats2, collapse = " "))
+    ggplotly(t)
+
+  })
+  
+  Input_violin <- reactive({
+    NHL %>% filter(Team == input$team)
   })
   
   output$violin <- renderPlot({
-    q <- ggplot(filter(NHL, Team == aes_string(input$team)), aes(Position1, y = select_if(NHL, is.numeric)[,input$stats3]), fill = Position1)
+    df <- Input_violin()
+    q <- ggplot(df, aes(Position1, y = select_if(NHL, is.numeric)[,input$stats3]))
     q <- q + geom_violin()
     
     print(q)
@@ -48,7 +57,8 @@ server <- function(input, output) {
   
   output$plot <- renderPlot({
     p <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$xcol],
-                         y = select_if(NHL, is.numeric)[,input$ycol])) + geom_point()
+                         y = select_if(NHL, is.numeric)[,input$ycol]
+                         )) + geom_point()
     
     if (input$filter != "None")
       p <- p + aes(color = select(NHL, Age, GP:PlusMinus, TOI.GP, PIM)[,input$filter] > input$number)
@@ -70,7 +80,9 @@ server <- function(input, output) {
     
     p <- p + xlab(paste(input$xcol, collapse = " "))
     p <- p + ylab(paste(input$ycol,collapse = " "))
-    #p <- p + labs(paste(input$filter > input$number, collapse = " " ))
+    p <- p + theme(legend.position = "bottom")
+    p <- p + theme(legend.title = element_blank())
+    
     print(p)
   })
   
@@ -131,12 +143,12 @@ ui <- fluidPage(theme = shinytheme("united"),
                                         selectInput("stats", "Statistics on histogram",
                                                          choices = colnames(select_if(NHL, is.numeric))),
                                              mainPanel(
-                                              plotOutput("simpleplot", width = "100%"),
+                                              plotlyOutput("simpleplot", width = "100%"),
                                               
                                         selectInput("stats2", "Statistics by positions",
                                                           choices = colnames(select_if(NHL, is.numeric))),
                                              mainPanel(
-                                               plotOutput("boxplot", width = "100%"),
+                                               plotlyOutput("boxplot", width = "100%"),
                                         
                                         selectInput("stats3", "Statistics",
                                                            choices = colnames(select_if(NHL, is.numeric))),
@@ -155,7 +167,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                                      choices = colnames(select_if(NHL, is.numeric))),
                                         selectInput("filter", "Filter Variable", 
                                                     choices = c("None", colnames((select(NHL, Age, GP:PlusMinus, TOI.GP, PIM))))),
-                                        sliderInput('number', 'set value for filter variable', 25,
+                                        sliderInput('number', 'Filter variable value is higher than this number', 25,
                                                      min = 0, max = 100),
                                         selectInput('color', 'Color', c('None', 'Position1')),
                                         checkboxInput('linear', 'Linear'),
