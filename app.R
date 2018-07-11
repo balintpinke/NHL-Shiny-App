@@ -1,4 +1,3 @@
-
 library(tidyverse)
 library(shiny)
 library(shinythemes)
@@ -7,6 +6,7 @@ library(d3heatmap)
 library(plotly)
 
 NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
+
 
 #rownames(NHL) <- NHL[,1]
 
@@ -18,19 +18,30 @@ Goals2 <- data.frame(Label = row.names(Goals2), Goals2)
 rownames(Goals2) <- NULL
 
 
-top10_pts <- select(NHL, Name, Age, G, A, PTS, PlusMinus, TOI.GP, PIM, X.FOT:ozFOL) %>% 
-  top_n(10, PTS)
-rownames(top10_pts) <- top10_pts[,1]
-top10_pts[,1] <- NULL
+top10_Points <- select(NHL, Name, Age, Goal, Assist, Points, Plus.Minus, TOI.GP, PIM, X.FOT:ozFOL) %>% 
+  top_n(10, Points)
+#rownames(top10_Points) <- top10_Points[,1]
+#top10_Points[,1] <- NULL
 
 
 server <- function(input, output) {
   
-  output$simpleplot <- renderPlotly({
-    k <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$stats]))
+  output$summaryplot <- renderPlotly({
+    k <- ggplot(NHL, aes(x = select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, PIM, sDist,
+                                    SA, Grit)[,input$stats]))
     k <- k + geom_bar()
     k <- k + xlab(paste(input$stats, collapse = " "))
-    ggplotly(k, tooltip = "y")
+    ggplotly(k, tooltip = "count")
+    #https://stackoverflow.com/questions/34605919/formatting-mouse-over-labels-in-plotly-when-using-ggplotly?rq=1
+    # https://stackoverflow.com/questions/45948926/ggplotly-text-aesthetic-causing-geom-line-to-not-display
+    })
+  
+  output$team_summaryplot <- renderPlotly({
+    k <- ggplot(NHL, aes(x = select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, PIM, sDist,
+                                    SA, Grit)[,input$stats]))
+    k <- k + geom_bar()
+    k <- k + xlab(paste(input$stats, collapse = " "))
+    ggplotly(k, tooltip = "count")
   })
   
   
@@ -42,17 +53,7 @@ server <- function(input, output) {
 
   })
   
-  Input_violin <- reactive({
-    NHL %>% filter(Team == input$team)
-  })
-  
-  output$violin <- renderPlot({
-    df <- Input_violin()
-    q <- ggplot(df, aes(Position1, y = select_if(NHL, is.numeric)[,input$stats3]))
-    q <- q + geom_violin()
-    
-    print(q)
-  })
+
   
   
   output$plot <- renderPlot({
@@ -61,7 +62,7 @@ server <- function(input, output) {
                          )) + geom_point()
     
     if (input$filter != "None")
-      p <- p + aes(color = select(NHL, Age, GP:PlusMinus, TOI.GP, PIM)[,input$filter] > input$number)
+      p <- p + aes(color = select(NHL, Age, Game.Played:Plus.Minus, TOI.GP, PIM)[,input$filter] > input$number)
     
     if (input$color != 'None')
       p <- p + aes_string(color = input$color)
@@ -94,7 +95,7 @@ server <- function(input, output) {
  
   output$heatmap <- renderD3heatmap({
     d3heatmap(
-      scale(top10_pts),
+      scale(top10_Points),
       colors = input$palette,
       dendrogram = if (input$cluster) "both" else "none",
       k_row = input$cluster_row,
@@ -141,9 +142,18 @@ ui <- fluidPage(theme = shinytheme("united"),
       navbarPage("NHL Statistics 2016/17",
                            tabPanel("Simple plot",
                                         selectInput("stats", "Statistics on histogram",
-                                                         choices = colnames(select_if(NHL, is.numeric))),
-                                             mainPanel(
-                                              plotlyOutput("simpleplot", width = "100%"),
+                                                         choices = colnames(
+                                                           select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
+                                                                  PIM, sDist, SA, Grit))),
+                                              mainPanel(
+                                                plotlyOutput("summaryplot", width = "100%"),
+                                                
+                                        selectInput("team", "Team statistics on histogram",
+                                                          choices = colnames(
+                                                            select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
+                                                                   PIM, sDist, SA, Grit))),
+                                              mainPanel(
+                                                plotlyOutput("team_summaryplot", width = "100%"),
                                               
                                         selectInput("stats2", "Statistics by positions",
                                                           choices = colnames(select_if(NHL, is.numeric))),
@@ -157,7 +167,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                              mainPanel(
                                                plotOutput("violin", width = "100%")
                                              ))
-                            ),
+                            )),
                            tabPanel("Interactive plot",
                                     sidebarLayout(
                                       sidebarPanel(
@@ -166,7 +176,7 @@ ui <- fluidPage(theme = shinytheme("united"),
                                         selectInput("ycol", "Y Variable", 
                                                      choices = colnames(select_if(NHL, is.numeric))),
                                         selectInput("filter", "Filter Variable", 
-                                                    choices = c("None", colnames((select(NHL, Age, GP:PlusMinus, TOI.GP, PIM))))),
+                                                    choices = c("None", colnames((select(NHL, Age, Game.Played:Plus.Minus, TOI.GP, PIM))))),
                                         sliderInput('number', 'Filter variable value is higher than this number', 25,
                                                      min = 0, max = 100),
                                         selectInput('color', 'Color', c('None', 'Position1')),

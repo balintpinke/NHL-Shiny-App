@@ -1,4 +1,4 @@
-Name;Age;Nat;Team;GP;G;A;PTS;PlusMinus;Position1;Salary;TOI.GP;PIM;G.Bkhd;G.Dflct;G.Slap;G.Snap;G.Tip;G.Wrap;G.Wrst;S.Bkhd;S.Dflct;S.Slap;S.Snap;S.Tip;S.Wrap;S.Wrst;sDist;SA;Grit;iBLK;BLK.;iSCF;SF;SH.;SCA;FO.;X.FOT;dzFOW;dzFOL;nzFOW;nzFOL;ozFOW;ozFOL
+Name;Age;Nat;Team;Game Played;Goal;Assist;Points;Plus Minus;Position1;Salary;TOI.GP;PIM;G.Bkhd;G.Dflct;G.Slap;G.Snap;G.Tip;G.Wrap;G.Wrst;S.Bkhd;S.Dflct;S.Slap;S.Snap;S.Tip;S.Wrap;S.Wrst;sDist;SA;Grit;iBLK;BLK.;iSCF;SF;SH.;SCA;FO.;X.FOT;dzFOW;dzFOL;nzFOW;nzFOL;ozFOW;ozFOL
 Spencer Abbott;28;CAN;CHI;1;0;0;0;0;LW;575000;8.6;0;0;0;0;0;0;0;0;0;0;0;0;1;0;0;15;4;0;0;0;0;5;0;1;0;0;0;0;0;0;0;0
 Justin Abdelkader;29;USA;DET;64;7;14;21;-20;LW;5500000;16.5;50;1;1;1;1;0;0;3;6;6;16;11;19;1;45;26.8;495;223;27;0.028;49;498;0.068;151;0.294;0.018;0;0;1;4;4;8
 Pontus Aberg;23;SWE;NSH;15;1;1;2;-2;LW;842500;12.3;4;0;0;0;1;0;0;0;0;1;0;1;1;1;8;32.9;89;15;2;0.013;0;77;0.065;20;1;0.005;1;0;0;0;0;0
