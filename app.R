@@ -37,10 +37,14 @@ server <- function(input, output) {
     })
   
   output$team_summaryplot <- renderPlotly({
+    
+    NHL=NHL %>% 
+      filter(Team==input$team)
+    
     k <- ggplot(NHL, aes(x = select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, PIM, sDist,
-                                    SA, Grit)[,input$stats]))
+                                    SA, Grit)[,input$team_stats]))
     k <- k + geom_bar()
-    k <- k + xlab(paste(input$stats, collapse = " "))
+    k <- k + xlab(paste(input$team_stats, collapse = " "))
     ggplotly(k, tooltip = "count")
   })
   
@@ -116,14 +120,14 @@ server <- function(input, output) {
   
   output$table <- DT::renderDataTable(DT::datatable({
     data <- NHL[,1:12]
-    if (input$name != "All") {
-      data <- data[data$Name == input$name,]
+    if (input$player_name != "All") {
+      data <- data[data$Name == input$player_name,]
     }
-    if (input$nat != "All") {
-      data <- data[data$Nat == input$nat,]
+    if (input$player_nat != "All") {
+      data <- data[data$Nat == input$player_nat,]
     }
-    if (input$team != "All") {
-      data <- data[data$Team == input$team,]
+    if (input$team_DT != "All") {
+      data <- data[data$Team == input$team_DT,]
     }
     data
     
@@ -148,7 +152,14 @@ ui <- fluidPage(theme = shinytheme("united"),
                                               mainPanel(
                                                 plotlyOutput("summaryplot", width = "100%"),
                                                 
+                                                
+                                                
+                                               
                                         selectInput("team", "Team statistics on histogram",
+                                                    choices = unique(NHL$Team))
+                                                      ,
+                                                
+                                        selectInput("team_stats", "Team statistics on histogram",
                                                           choices = colnames(
                                                             select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
                                                                    PIM, sDist, SA, Grit))),
@@ -218,19 +229,19 @@ ui <- fluidPage(theme = shinytheme("united"),
                                              # Create a new Row in the UI for selectInputs
                                              fluidRow(
                                                column(4,
-                                                      selectInput("name",
+                                                      selectInput("player_name",
                                                                   "Name:",
                                                                   c("All",
                                                                     unique(as.character(NHL$Name))))
                                                ),
                                                column(4,
-                                                      selectInput("nat",
+                                                      selectInput("player_nat",
                                                                   "Nationality:",
                                                                   c("All",
                                                                     unique(as.character(NHL$Nat))))
                                                ),
                                                column(4,
-                                                      selectInput("team",
+                                                      selectInput("team_DT",
                                                                   "Team:",
                                                                   c("All",
                                                                     unique(as.character(NHL$Team))))
@@ -238,6 +249,16 @@ ui <- fluidPage(theme = shinytheme("united"),
                                              ),
                                              DT::dataTableOutput("table"),
                                              downloadButton("downloadData", "Download")
-                                    ))))
+                                    )),
+                 tabPanel("About",
+                          fluidRow(
+                            column(6,
+                                   includeMarkdown("README.md")
+                            ),
+                            column(3,
+                                   tags$iframe(src="https://giphy.com/embed/l3q2SMNXwyd2hJsAM", height=500, width=500, frameborder=0, seamless="seamless")
+                            ) 
+                          ))
+      ))
 
 shinyApp(server = server, ui = ui)
