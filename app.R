@@ -15,7 +15,7 @@ library(plotly)
 #   fill_palette("jco")
 
 
-
+setwd("D:/R_WD/NHL-Shiny-App")
 NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
 
 
@@ -39,7 +39,7 @@ ui <- dashboardPage(
   dashboardSidebar(
     sidebarMenu(
       menuItem("Compare teams", tabName = "compare_teams", icon = icon("dashboard")),
-      menuItem("Interactive plot", tabName = "interactive_plot", icon = icon("crosshairs")),
+      menuItem("Player statistics", tabName = "interactive_plot", icon = icon("crosshairs")),
       menuItem("Radar chart", tabName = "radar_chart", icon = icon("th")),
       menuItem("Heatmap", tabName = "heatmap", icon = icon("map"), badgeLabel = "error", badgeColor = "red"),
       menuItem("Discover the data", tabName = "discover_data", icon = icon("table"), badgeLabel = "new", badgeColor = "green"),
@@ -52,56 +52,41 @@ ui <- dashboardPage(
       tabItem("compare_teams",
               
                 fluidRow(
-                  box(title = "Team 1", width = 6, solidHeader = TRUE, status = "primary",
+                  box(title = "Compare teams", width = 12, solidHeader = TRUE, status = "primary",
                       fluidRow(
-                        box(width = 6,
-                            selectInput("team_stats_1", "Choose team 1",
-                                        choices = unique(NHL$Team))
+                        box(width = 3,
+                            selectInput("team_1", "Choose team 1",
+                                        choices = unique(NHL$Team), selected=unique(NHL$Team)[1])
                         ),
-                box(width = 6,
-               selectInput("team_stats_2", "Statistics on histogram",
+                        box(width = 3,
+                            selectInput("team_2", "Choose team 2",
+                                        choices = unique(NHL$Team), selected=unique(NHL$Team)[2])
+                        ),
+                  box(width = 3,
+                            selectInput("team_stats_1", "Statistics on histogram",
                            choices = colnames(
                              select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
-                                    PIM, sDist, SA, Grit))
+                                    PIM, sDist, SA, Grit)),
+                           selected = colnames(
+                             select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
+                                    PIM, sDist, SA, Grit))[3]
                            )
-                )
-               ),
-
-                plotlyOutput("summaryplot")),
-
-                  box(title = "Team 2", width = 6, solidHeader = TRUE, status = "primary", 
-                   fluidRow(
-                     box(width = 6,
-                       selectInput("team_stats_3", "Choose team 2",
-                             choices = unique(NHL$Team))
-                       ),
-                     box(width = 6,
-                       selectInput("team_stats_4", "Choose statistics",
-                             choices = colnames(
-                               select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
-                                      PIM, sDist, SA, Grit))
-                       )
-                       )
-                     ),
-
-                 plotlyOutput("team_summaryplot")
-               
-                  )
-               ),
-                   selectInput("stats2", "Statistics by positions",
-                               choices = colnames(select_if(NHL, is.numeric))),
-                   mainPanel(
-                     plotlyOutput("boxplot", width = "100%"),
-                     
-                     selectInput("stats3", "Statistics",
-                                 choices = colnames(select_if(NHL, is.numeric))),
-                     selectInput("team", "Statistics by teams",
-                                 choices = unique(NHL$Team))),
-                   mainPanel(
-                     plotOutput("violin", width = "100%")
+                ),
+                  box(width = 3,
+                            selectInput("team_stats_2", "Choose statistics",
+                               choices = colnames(
+                                 select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
+                                        PIM, sDist, SA, Grit)),
+                               selected = colnames(
+                                 select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
+                                        PIM, sDist, SA, Grit))[4]
                    )
                )
-              ),
+               ),
+               plotlyOutput("compare_teams"),
+               DT::dataTableOutput("two_teams_table"))
+               )
+               ),
       # 2. tab content
       tabItem("interactive_plot",
                sidebarLayout(
@@ -115,26 +100,30 @@ ui <- dashboardPage(
                    sliderInput('number', 'Filter variable value is higher than this number', 25,
                                min = 0, max = 100),
                    selectInput('color', 'Color', c('None', 'Position1')),
-                   checkboxInput('linear', 'Linear'),
-                   checkboxInput('smooth', 'Smooth'),
-                   selectInput('facet_row', 'Facet Row', c(None = '.', "Position1"))
+                   checkboxInput('linear', 'Linear')
+                   # checkboxInput('smooth', 'Smooth'),
+                   # selectInput('facet_row', 'Facet Row', c(None = '.', "Position1"))
                  ),
                  mainPanel(
-                   plotOutput("plot", width = "100%")
+                   plotlyOutput("plot", width = "100%")
                  )
                )
       ),
       # 3. tab content
       tabItem("radar_chart",
-               selectInput("player1", "Player 1", 
-                           choices = names(Goals2)[2:889]),
-               selectInput("player2", "Player 2", 
-                           choices = names(Goals2)[2:889]),
-               selectInput("player3", "Player 3", 
-                           choices = names(Goals2)[2:889]),
-               mainPanel(
-                 chartJSRadarOutput("radar", width = "450", height = "300"), width = 9
-               )
+              box(title = "What type of shots a player score a goal", width = 12, solidHeader = TRUE, status = "primary",
+                  box(width = 4,
+               selectInput("player1", "Choose player 1", 
+                           choices = names(Goals2)[2:889], selected = names(Goals2)[602])),
+                  box(width = 4,
+               selectInput("player2", "Choose player 2", 
+                           choices = names(Goals2)[2:889], selected = names(Goals2)[151])),
+                  box(width = 4,
+               selectInput("player3", "Choose player 3", 
+                           choices = names(Goals2)[2:889], selected = names(Goals2)[511])
+               )),
+              chartJSRadarOutput("radar", width = "450", height = "300")
+              
                
       ),
       # 4. tab content
@@ -188,59 +177,49 @@ ui <- dashboardPage(
                  ) 
                ))
     ))
+    )
 
 
 
 server <- function(input, output) {
   
-  # output$summaryplot <- renderPlotly({
-  #   k <- ggplot(NHL, aes(x = select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, PIM, sDist,
-  #                                   SA, Grit)[,input$stats]))
-  #   k <- k + geom_bar()
-  #   k <- k + xlab(paste(input$stats, collapse = " "))
-  #   ggplotly(k, tooltip = "count")
-  #   #https://stackoverflow.com/questions/34605919/formatting-mouse-over-labels-in-plotly-when-using-ggplotly?rq=1
-  #   # https://stackoverflow.com/questions/45948926/ggplotly-text-aesthetic-causing-geom-line-to-not-display
-  #   })
   
-  output$summaryplot <- renderPlotly({
+  # NHL2=NHL %>%
+  #   filter(Team=="CHI" | Team=="DET")
+  # 
+  # NHL2$Team=as.character(NHL2$Team)
+  # 
+  # p <- plot_ly(data = NHL2, x = ~Goal, y = ~Assist, color = ~Team, colors = c("red", "blue"))
+  
+  output$compare_teams <- renderPlotly({
     
-    NHL=NHL %>% 
-      filter(Team==input$team_stats_1)
+      NHL2 = NHL %>%
+        filter(Team==input$team_1 | Team==input$team_2) %>% 
+        select(Name, Team, input$team_stats_1, input$team_stats_2)
+      
+      # NHL2 = NHL %>%
+      #   filter(Team=="CHI" | Team=="DET") %>% 
+      #   select(Name, Team, Goal, Assist)
+      NHL2$Team=as.character(NHL2$Team)
+      
+      
+      p <- plot_ly(data = NHL2, x = ~NHL2[[input$team_stats_1]], y = ~NHL2[[input$team_stats_2]], text = ~Name,
+                   color = ~Team, colors = c("red", "blue")) %>% 
+        layout(xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
+      p
     
-    k <- ggplot(NHL, aes(x = select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, PIM, sDist,
-                                    SA, Grit)[,input$team_stats_2]))
-    k <- k + geom_bar()
-    k <- k + xlab(paste(input$team_stats, collapse = " "))
-    ggplotly(k, tooltip = "count")
   })
   
-  
-  output$team_summaryplot <- renderPlotly({
-    
-    NHL=NHL %>% 
-      filter(Team==input$team_stats_3)
-    
-    k <- ggplot(NHL, aes(x = select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, PIM, sDist,
-                                    SA, Grit)[,input$team_stats_4]))
-    k <- k + geom_bar()
-    k <- k + xlab(paste(input$team_stats, collapse = " "))
-    ggplotly(k, tooltip = "count")
-  })
-  
-  
-  output$boxplot <- renderPlotly({
-    t <- ggplot(NHL, aes(Position1, y = select_if(NHL, is.numeric)[,input$stats2]), fill = Position1)
-    t <- t + geom_boxplot()
-    t <- t + ylab(paste(input$stats2, collapse = " "))
-    ggplotly(t)
+  output$two_teams_table <- DT::renderDataTable(DT::datatable({
+    NHL2 = NHL %>%
+      filter(Team==input$team_1 | Team==input$team_2)
+      
+    NHL2[1:10]
+  }))
 
-  })
-  
 
   
-  
-  output$plot <- renderPlot({
+  output$plot <- renderPlotly({
     p <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$xcol],
                          y = select_if(NHL, is.numeric)[,input$ycol]
                          )) + geom_point()
@@ -251,15 +230,15 @@ server <- function(input, output) {
     if (input$color != 'None')
       p <- p + aes_string(color = input$color)
     
-    if (input$smooth)
-      p <- p + geom_smooth(method = "loess", se = FALSE, color = "Red")
-    
+    # if (input$smooth)
+    #   p <- p + geom_smooth(method = "loess", se = FALSE, color = "Red")
+    # 
     if (input$linear)
       p <- p + geom_smooth(method = "lm", se = FALSE)
-    
-    facets <- paste(input$facet_row, "~", ".")
-    if (facets != '. ~ .')
-    p <- p + facet_grid(facets)
+    # 
+    # facets <- paste(input$facet_row, "~", ".")
+    # if (facets != '. ~ .')
+    # p <- p + facet_grid(facets)
     
     #p <- p + geom_smooth(method = "lm") 
     
@@ -268,10 +247,14 @@ server <- function(input, output) {
     p <- p + theme(legend.position = "bottom")
     p <- p + theme(legend.title = element_blank())
     
-    print(p)
+    ggplotly(p)
   })
   
   output$radar <- renderChartJSRadar({
+    
+    goal_types = c("Backhand", "Deflections", "Slap shots", "Snap shots", "Tip shots", "Wraparound", "Wrist shot")
+    Goals2$Label=goal_types
+    
     chartJSRadar(Goals2[, c("Label", input$player1, input$player2, input$player3)],
                  maxScale = 20, scaleLineWidth = 2, showToolTipLabel = TRUE)
   })
