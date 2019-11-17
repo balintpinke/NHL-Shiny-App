@@ -8,22 +8,8 @@ library(plotly)
 library(data.table)
 library(DT)
 
-# # img <- png::readPNG("D:/R_WD/NHL-Shiny-App/nhl.png")
-# 
-# # Plot with background image
-# ggplot(iris, aes(Species, Sepal.Length))+
-#   background_image(img)+
-#   geom_boxplot(aes(fill = Species), color = "white")+
-#   fill_palette("jco")
-
-
-setwd("D:/R_WD/NHL-Shiny-App")
+# setwd("D:/R_WD/NHL-Shiny-App")
 NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
-
-colnames(NHL)
-
-
-
 
 old_names <- c("Game.Played", "Plus_minus", "PIM", "SA", "Grit")
 new_names <- c("Game Played",  "Plus-Minus", "Penalty (minutes)", 
@@ -36,9 +22,7 @@ variables <- c("Age", 'Game Played', "Goal", "Assist", "Points",
                "Shots on goal allowed while this player was on the ice",
                "Grit (hits, blocked shots, penalty minutes, and majors)")
             
-
-
-setnames(NHL, old_names, new_names)
+DT::setnames(NHL, old_names, new_names)
 
 #radarchart
 Goals <- select(NHL,Name, G.Bkhd:G.Wrst)
@@ -177,12 +161,10 @@ server <- function(input, output) {
 
       NHL2$Team=as.character(NHL2$Team)
       
-      
       p <- plot_ly(data = NHL2, x = ~NHL2[[input$team_stats_1]], y = ~NHL2[[input$team_stats_2]], text = ~Name,
                    color = ~Team) %>% 
         layout(xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
       p
-    
   })
   
   output$two_teams_table <- DT::renderDataTable(DT::datatable({
@@ -238,12 +220,8 @@ server <- function(input, output) {
         scrollX = TRUE, 
         fixedColumns = list(leftColumns = 1)
       )
-    
-    
   ))
   
   }
 
-
 shinyApp(server = server, ui = ui)
-
