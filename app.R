@@ -5,6 +5,8 @@ library(shinythemes)
 library(radarchart)
 library(d3heatmap)
 library(plotly)
+library(data.table)
+library(DT)
 
 # # img <- png::readPNG("D:/R_WD/NHL-Shiny-App/nhl.png")
 # 
@@ -18,9 +20,27 @@ library(plotly)
 setwd("D:/R_WD/NHL-Shiny-App")
 NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
 
+colnames(NHL)
 
-#rownames(NHL) <- NHL[,1]
 
+
+
+old_names <- c("Game.Played", "Plus_minus", "PIM", "SA", "Grit")
+new_names <- c("Game Played",  "Plus-Minus", "Penalty (minutes)", 
+               "Shots on goal allowed while this player was on the ice",
+               "Grit (hits, blocked shots, penalty minutes, and majors)")
+            
+
+variables <- c("Age", 'Game Played', "Goal", "Assist", "Points", 
+               "Plus-Minus", "Salary", "Penalty (minutes)",
+               "Shots on goal allowed while this player was on the ice",
+               "Grit (hits, blocked shots, penalty minutes, and majors)")
+            
+
+
+setnames(NHL, old_names, new_names)
+
+#radarchart
 Goals <- select(NHL,Name, G.Bkhd:G.Wrst)
 rownames(Goals) <- Goals[,1]
 Goals[,1] <- NULL
@@ -29,20 +49,14 @@ Goals2 <- data.frame(Label = row.names(Goals2), Goals2)
 rownames(Goals2) <- NULL
 
 
-top10_Points <- select(NHL, Name, Age, Goal, Assist, Points, Plus.Minus, TOI.GP, PIM, X.FOT:ozFOL) %>% 
-  top_n(10, Points)
-#rownames(top10_Points) <- top10_Points[,1]
-#top10_Points[,1] <- NULL
-
 ui <- dashboardPage(
   dashboardHeader(title = "NHL 2016/17"),
   dashboardSidebar(
     sidebarMenu(
       menuItem("Compare teams", tabName = "compare_teams", icon = icon("dashboard")),
-      menuItem("Player statistics", tabName = "interactive_plot", icon = icon("crosshairs")),
-      menuItem("Radar chart", tabName = "radar_chart", icon = icon("th")),
-      menuItem("Heatmap", tabName = "heatmap", icon = icon("map"), badgeLabel = "error", badgeColor = "red"),
-      menuItem("Discover the data", tabName = "discover_data", icon = icon("table"), badgeLabel = "new", badgeColor = "green"),
+      menuItem("Compare players", tabName = "interactive_plot", icon = icon("crosshairs")),
+      menuItem("Goal types", tabName = "radar_chart", icon = icon("th")),
+      menuItem("Team heatmap", tabName = "heatmap", icon = icon("map"), badgeLabel = "new", badgeColor = "green"),
       menuItem("About", tabName = "about", icon = icon("cogs"))
     )
   ),
@@ -63,23 +77,15 @@ ui <- dashboardPage(
                                         choices = unique(NHL$Team), selected=unique(NHL$Team)[2])
                         ),
                   box(width = 3,
-                            selectInput("team_stats_1", "Statistics on histogram",
-                           choices = colnames(
-                             select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
-                                    PIM, sDist, SA, Grit)),
-                           selected = colnames(
-                             select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
-                                    PIM, sDist, SA, Grit))[3]
+                            selectInput("team_stats_1", "X axis",
+                           choices = variables,
+                           selected = variables[3]
                            )
                 ),
                   box(width = 3,
-                            selectInput("team_stats_2", "Choose statistics",
-                               choices = colnames(
-                                 select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
-                                        PIM, sDist, SA, Grit)),
-                               selected = colnames(
-                                 select(NHL, Age, Game.Played, Goal, Assist, Points, Plus.Minus, Salary, TOI.GP, 
-                                        PIM, sDist, SA, Grit))[4]
+                            selectInput("team_stats_2", "Y axis",
+                               choices = variables,
+                               selected = variables[4]
                    )
                )
                ),
@@ -89,29 +95,27 @@ ui <- dashboardPage(
                ),
       # 2. tab content
       tabItem("interactive_plot",
-               sidebarLayout(
-                 sidebarPanel(
-                   selectInput("xcol", "X Variable", 
-                               choices = colnames(select_if(NHL, is.numeric))),
-                   selectInput("ycol", "Y Variable", 
-                               choices = colnames(select_if(NHL, is.numeric))),
-                   selectInput("filter", "Filter Variable", 
-                               choices = c("None", colnames((select(NHL, Age, Game.Played:Plus.Minus, TOI.GP, PIM))))),
-                   sliderInput('number', 'Filter variable value is higher than this number', 25,
-                               min = 0, max = 100),
-                   selectInput('color', 'Color', c('None', 'Position1')),
-                   checkboxInput('linear', 'Linear')
-                   # checkboxInput('smooth', 'Smooth'),
-                   # selectInput('facet_row', 'Facet Row', c(None = '.', "Position1"))
-                 ),
-                 mainPanel(
-                   plotlyOutput("plot", width = "100%")
-                 )
-               )
+              fluidRow(
+                box(title = "Compare players", width = 12, solidHeader = TRUE, status = "primary",
+                    fluidRow(
+                      box(width = 6,
+                   selectInput("player_stats_1", "X axis", 
+                               choices = variables, selected = variables[6])
+                   ),
+                   box(width = 6,
+                   selectInput("player_stats_2", "Y axis", 
+                               choices = variables, selected = variables[3])
+                   )),
+                   plotlyOutput("plot"),
+                   DT::dataTableOutput("table"),
+                   downloadButton("downloadData", "Download")
+                  
+                )
+              )
       ),
       # 3. tab content
       tabItem("radar_chart",
-              box(title = "What type of shots a player score a goal", width = 12, solidHeader = TRUE, status = "primary",
+              box(title = "Scoring goals with different type of shots", width = 12, solidHeader = TRUE, status = "primary",
                   box(width = 4,
                selectInput("player1", "Choose player 1", 
                            choices = names(Goals2)[2:889], selected = names(Goals2)[602])),
@@ -128,53 +132,33 @@ ui <- dashboardPage(
       ),
       # 4. tab content
       tabItem("heatmap",
-               selectInput("palette", "Palette", c("YlOrRd", "RdYlBu", "Greens", "Blues")),
-               selectInput("top10", "Select the top 10 player in that stat", 
-                           choices = colnames(select_if(NHL, is.numeric))),
-               checkboxInput("cluster", "Apply clustering"),
-               sliderInput('cluster_row', 'Set group number for rows', 2,
-                           min = 1, max = 10),
-               sliderInput('cluster_col', 'Set group number for columns', 4,
-                           min = 1, max = 10),
-               d3heatmapOutput("heatmap")
-      ),
-      
-      # 5. tab content
-      tabItem("discover_data",
-               tabPanel("Table",
-                        # Create a new Row in the UI for selectInputs
-                        fluidRow(
-                          column(4,
-                                 selectInput("player_name",
-                                             "Name:",
-                                             c("All",
-                                               unique(as.character(NHL$Name))))
-                          ),
-                          column(4,
-                                 selectInput("player_nat",
-                                             "Nationality:",
-                                             c("All",
-                                               unique(as.character(NHL$Nat))))
-                          ),
-                          column(4,
-                                 selectInput("team_DT",
-                                             "Team:",
-                                             c("All",
-                                               unique(as.character(NHL$Team))))
-                          )
-                        ),
-                        DT::dataTableOutput("table"),
-                        downloadButton("downloadData", "Download")
+              fluidRow(
+              box(title = "Team heatmap", width = 12, solidHeader = TRUE, status = "primary",
+              fluidRow(    
+                  box(width = 4,
+              selectInput("team_heatmap", "Choose Team", choices=unique(NHL$Team), multiple = FALSE)
+                  ),
+                  box(width = 2,
+               checkboxInput("cluster", "Click to apply clustering")
+                  ),
+               box(width = 3,
+               sliderInput('cluster_row', 'Set cluster group number for players', 2,
+                           min = 1, max = 10)
+               ),
+               box(width = 3,
+               sliderInput('cluster_col', 'Set cluster group number for stats', 4,
+                           min = 1, max = 10)
                )),
+               d3heatmapOutput("heatmap")
+              )
+              )
+      ),
+
       # 5. tab content
       tabItem("about",
                fluidRow(
-                 column(6,
-                        includeMarkdown("README.md")
-                 ),
-                 column(3,
-                        tags$iframe(src="https://giphy.com/embed/l3q2SMNXwyd2hJsAM", height=500, width=500, frameborder=0, seamless="seamless")
-                 ) 
+                 includeMarkdown("README.md"),
+                 tags$iframe(src="https://giphy.com/embed/l3q2SMNXwyd2hJsAM", height=500, width=500, frameborder=0, seamless="seamless")
                ))
     ))
     )
@@ -184,27 +168,18 @@ ui <- dashboardPage(
 server <- function(input, output) {
   
   
-  # NHL2=NHL %>%
-  #   filter(Team=="CHI" | Team=="DET")
-  # 
-  # NHL2$Team=as.character(NHL2$Team)
-  # 
-  # p <- plot_ly(data = NHL2, x = ~Goal, y = ~Assist, color = ~Team, colors = c("red", "blue"))
   
   output$compare_teams <- renderPlotly({
     
       NHL2 = NHL %>%
         filter(Team==input$team_1 | Team==input$team_2) %>% 
         select(Name, Team, input$team_stats_1, input$team_stats_2)
-      
-      # NHL2 = NHL %>%
-      #   filter(Team=="CHI" | Team=="DET") %>% 
-      #   select(Name, Team, Goal, Assist)
+
       NHL2$Team=as.character(NHL2$Team)
       
       
       p <- plot_ly(data = NHL2, x = ~NHL2[[input$team_stats_1]], y = ~NHL2[[input$team_stats_2]], text = ~Name,
-                   color = ~Team, colors = c("red", "blue")) %>% 
+                   color = ~Team) %>% 
         layout(xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
       p
     
@@ -213,41 +188,22 @@ server <- function(input, output) {
   output$two_teams_table <- DT::renderDataTable(DT::datatable({
     NHL2 = NHL %>%
       filter(Team==input$team_1 | Team==input$team_2)
-      
-    NHL2[1:10]
+
+    NHL2[order(-NHL2$Goal, -NHL2$Assist),1:10]
   }))
 
 
   
   output$plot <- renderPlotly({
-    p <- ggplot(NHL, aes(x = select_if(NHL, is.numeric)[,input$xcol],
-                         y = select_if(NHL, is.numeric)[,input$ycol]
-                         )) + geom_point()
     
-    if (input$filter != "None")
-      p <- p + aes(color = select(NHL, Age, Game.Played:Plus.Minus, TOI.GP, PIM)[,input$filter] > input$number)
+    p <- plot_ly(data = NHL, 
+                 x = ~NHL[[input$player_stats_1]], 
+                 y = ~NHL[[input$player_stats_2]], 
+                 text = ~Name,
+                 color = ~Position) %>%  #colors = c("red", "blue")
+      layout(xaxis = list(title = input$player_stats_1) , yaxis = list(title = input$player_stats_2))
     
-    if (input$color != 'None')
-      p <- p + aes_string(color = input$color)
-    
-    # if (input$smooth)
-    #   p <- p + geom_smooth(method = "loess", se = FALSE, color = "Red")
-    # 
-    if (input$linear)
-      p <- p + geom_smooth(method = "lm", se = FALSE)
-    # 
-    # facets <- paste(input$facet_row, "~", ".")
-    # if (facets != '. ~ .')
-    # p <- p + facet_grid(facets)
-    
-    #p <- p + geom_smooth(method = "lm") 
-    
-    p <- p + xlab(paste(input$xcol, collapse = " "))
-    p <- p + ylab(paste(input$ycol,collapse = " "))
-    p <- p + theme(legend.position = "bottom")
-    p <- p + theme(legend.title = element_blank())
-    
-    ggplotly(p)
+
   })
   
   output$radar <- renderChartJSRadar({
@@ -261,50 +217,32 @@ server <- function(input, output) {
   
  
   output$heatmap <- renderD3heatmap({
+    
+    df=NHL[NHL$Team==input$team_heatmap, c("Name",variables)]
+    rownames(df)=df$Name
+    df$Name=NULL
+    
     d3heatmap(
-      scale(top10_Points),
-      colors = input$palette,
+      scale(df),
+      color = scales::col_quantile("Blues", NULL, 5),
       dendrogram = if (input$cluster) "both" else "none",
       k_row = input$cluster_row,
       k_col = input$cluster_col
     )
   })
   
-  # output$summary <- renderPlot({
-  #   k <- ggplot(NHL, aes(x = select_if(NHL, is.factor)[,input$char],
-  #                        y = select_if(NHL, is.numeric)[,input$num]
-  #                        )) +
-  #         geom_boxplot()
-  # })
-  # 
   
-  
-  
-  
-  output$table <- DT::renderDataTable(DT::datatable({
-    data <- NHL[,1:12]
-    if (input$player_name != "All") {
-      data <- data[data$Name == input$player_name,]
-    }
-    if (input$player_nat != "All") {
-      data <- data[data$Nat == input$player_nat,]
-    }
-    if (input$team_DT != "All") {
-      data <- data[data$Team == input$team_DT,]
-    }
-    data
+  output$table <- DT::renderDataTable(DT::datatable(
+      NHL, rownames=FALSE, extensions = "FixedColumns",
+      options = list(
+        scrollX = TRUE, 
+        fixedColumns = list(leftColumns = 1)
+      )
     
-  }))}
-
-
-# output$downloadData <- downloadHandler(
-#   filename = function() {
-#     paste(data, ".csv", sep = "")
-#   },
-#   content = function(file) {
-#     write.csv(data, file, row.names = TRUE)})
-
-
+    
+  ))
+  
+  }
 
 
 shinyApp(server = server, ui = ui)
