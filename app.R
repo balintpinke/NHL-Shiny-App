@@ -21,8 +21,8 @@ variables <- c("Age", 'Game Played', "Goal", "Assist", "Points",
                "Plus-Minus", "Salary", "Penalty (minutes)",
                "Shots on goal allowed while this player was on the ice",
                "Grit (hits, blocked shots, penalty minutes, and majors)")
-            
-DT::setnames(NHL, old_names, new_names)
+
+data.table::setnames(NHL, old_names, new_names)
 
 #radarchart
 Goals <- select(NHL,Name, G.Bkhd:G.Wrst)
@@ -37,9 +37,9 @@ ui <- dashboardPage(
   dashboardHeader(title = "NHL 2016/17"),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Compare teams", tabName = "compare_teams", icon = icon("dashboard")),
-      menuItem("Compare players", tabName = "interactive_plot", icon = icon("crosshairs")),
-      menuItem("Goal types", tabName = "radar_chart", icon = icon("th")),
+      menuItem("Compare teams", tabName = "compare_teams", icon = icon("hockey-puck")),
+      menuItem("Compare players", tabName = "interactive_plot", icon = icon("user-friends")),
+      menuItem("Goal types", tabName = "radar_chart", icon = icon("bullseye")),
       menuItem("Team heatmap", tabName = "heatmap", icon = icon("map"), badgeLabel = "new", badgeColor = "green"),
       menuItem("About", tabName = "about", icon = icon("cogs"))
     )
@@ -91,10 +91,7 @@ ui <- dashboardPage(
                                choices = variables, selected = variables[3])
                    )),
                    plotlyOutput("plot"),
-                   DT::dataTableOutput("table"),
-                   downloadButton("downloadData", "Download")
-                  
-                )
+                   DT::dataTableOutput("table"))
               )
       ),
       # 3. tab content
@@ -141,11 +138,14 @@ ui <- dashboardPage(
       # 5. tab content
       tabItem("about",
                fluidRow(
+                 box(title = "Compare teams", width = 12, solidHeader = TRUE, status = "primary",
                  includeMarkdown("README.md"),
                  tags$iframe(src="https://giphy.com/embed/l3q2SMNXwyd2hJsAM", height=500, width=500, frameborder=0, seamless="seamless")
                ))
+      )
     ))
     )
+
 
 
 
