@@ -7,20 +7,21 @@ library(d3heatmap)
 library(plotly)
 library(data.table)
 library(DT)
+library(crosstalk)
+
 
 # setwd("D:/R_WD/NHL-Shiny-App")
 NHL <- read.csv("NHL_cleaned.csv", sep = ";", header = TRUE)
 
 old_names <- c("Game.Played", "Plus_minus", "PIM", "SA", "Grit")
 new_names <- c("Game Played",  "Plus-Minus", "Penalty (minutes)", 
-               "Shots on goal allowed while this player was on the ice",
-               "Grit (hits, blocked shots, penalty minutes, and majors)")
+               "Shots on goal allowed", "Grit")
             
 
 variables <- c("Age", 'Game Played', "Goal", "Assist", "Points", 
                "Plus-Minus", "Salary", "Penalty (minutes)",
-               "Shots on goal allowed while this player was on the ice",
-               "Grit (hits, blocked shots, penalty minutes, and majors)")
+               "Shots on goal allowed",
+               "Grit")
 
 data.table::setnames(NHL, old_names, new_names)
 
@@ -152,29 +153,83 @@ ui <- dashboardPage(
 server <- function(input, output) {
   
   
+  NHL_df_2_teams <- reactive({
+     NHL = NHL %>%
+      dplyr::filter(Team==input$team_1 | Team==input$team_2)
+
+     NHL
+  })
+  
+  
+  NHL_df_env <- crosstalk::SharedData$new(NHL_df_2_teams)
+  
+  output$two_teams_table <- DT::renderDataTable({
+    
+    NHL = NHL_df_2_teams()
+    
+    selected <- NHL[NHL_df_env$selection(),]
+    dt <- DT::datatable(NHL,
+                        options = list(
+                          scrollX = TRUE
+                        ))
+    
+    if (NROW(selected) == 0) {
+      dt
+    } else {
+      selected
+    }
+  })
   
   output$compare_teams <- renderPlotly({
     
-      NHL2 = NHL %>%
-        filter(Team==input$team_1 | Team==input$team_2) %>% 
-        select(Name, Team, input$team_stats_1, input$team_stats_2)
-
-      NHL2$Team=as.character(NHL2$Team)
-      
-      p <- plot_ly(data = NHL2, x = ~NHL2[[input$team_stats_1]], y = ~NHL2[[input$team_stats_2]], text = ~Name,
-                   color = ~Team) %>% 
-        layout(xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
-      p
+    selected_row <- input$two_teams_table_rows_selected
+  
+    NHL_df_2_teams=NHL_df_2_teams()
+    NHL_df_2_teams$Team=as.character(NHL_df_2_teams$Team)
+    
+      if (!length(selected_row)) {
+        p <- NHL_df_env %>%
+          plot_ly(x = ~get(input$team_stats_1), y = ~get(input$team_stats_2), mode = "markers", color = I('black'), name = 'Unfiltered') %>%
+          layout(showlegend = T, xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2)) %>% 
+          highlight("plotly_selected", color = I('red'), selected = attrs_selected(name = 'Filtered'))  
+         
+      } else if (length(selected_row)) {
+        pp <- NHL_df_2_teams %>%
+          plot_ly() %>% 
+          add_trace(x = ~get(input$team_stats_1), y = ~get(input$team_stats_2), mode = "markers", color = I('black'), name = 'Unfiltered') %>%
+          layout(showlegend = T, xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
+        
+        # selected data
+        pp <- add_trace(pp, data = NHL_df_2_teams[selected_row, , drop = F], x = ~get(input$team_stats_1), y = ~get(input$team_stats_2), mode = "markers",
+                        color = I('red'), name = 'Filtered')
+      }
+      # 
+      # 
+      # p <- plot_ly(data = NHL2, x = ~NHL2[[input$team_stats_1]], y = ~NHL2[[input$team_stats_2]], text = ~Name,
+      #              color = ~Team) %>% 
+      #   layout(xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
+      # p
   })
   
-  output$two_teams_table <- DT::renderDataTable(DT::datatable({
-    NHL2 = NHL %>%
-      filter(Team==input$team_1 | Team==input$team_2)
+  
 
-    NHL2[order(-NHL2$Goal, -NHL2$Assist),1:10]
-  }))
+  
+  # output$two_teams_table <- DT::renderDataTable(DT::datatable({
+  #   NHL2 = NHL %>%
+  #     filter(Team==input$team_1 | Team==input$team_2)
+  # 
+  #   NHL2[order(-NHL2$Goal, -NHL2$Assist),1:10]
+  # }))
+  
+  
 
 
+  
+  
+  
+  
+  
+  
   
   output$plot <- renderPlotly({
     
@@ -215,10 +270,9 @@ server <- function(input, output) {
   
   
   output$table <- DT::renderDataTable(DT::datatable(
-      NHL, rownames=FALSE, extensions = "FixedColumns",
+      NHL,
       options = list(
-        scrollX = TRUE, 
-        fixedColumns = list(leftColumns = 1)
+        scrollX = TRUE
       )
   ))
   
