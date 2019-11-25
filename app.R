@@ -139,7 +139,7 @@ ui <- dashboardPage(
       # 5. tab content
       tabItem("about",
                fluidRow(
-                 box(title = "Compare teams", width = 12, solidHeader = TRUE, status = "primary",
+                 box(title = "About", width = 12, solidHeader = TRUE, status = "primary",
                  includeMarkdown("README.md"),
                  tags$iframe(src="https://giphy.com/embed/l3q2SMNXwyd2hJsAM", height=500, width=500, frameborder=0, seamless="seamless")
                ))
@@ -182,33 +182,11 @@ server <- function(input, output) {
   
   output$compare_teams <- renderPlotly({
     
-    selected_row <- input$two_teams_table_rows_selected
-  
-    NHL_df_2_teams=NHL_df_2_teams()
-    NHL_df_2_teams$Team=as.character(NHL_df_2_teams$Team)
-    
-      if (!length(selected_row)) {
-        p <- NHL_df_env %>%
-          plot_ly(x = ~get(input$team_stats_1), y = ~get(input$team_stats_2), mode = "markers", color = I('black'), name = 'Unfiltered') %>%
-          layout(showlegend = T, xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2)) %>% 
-          highlight("plotly_selected", color = I('red'), selected = attrs_selected(name = 'Filtered'))  
-         
-      } else if (length(selected_row)) {
-        pp <- NHL_df_2_teams %>%
-          plot_ly() %>% 
-          add_trace(x = ~get(input$team_stats_1), y = ~get(input$team_stats_2), mode = "markers", color = I('black'), name = 'Unfiltered') %>%
-          layout(showlegend = T, xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
-        
-        # selected data
-        pp <- add_trace(pp, data = NHL_df_2_teams[selected_row, , drop = F], x = ~get(input$team_stats_1), y = ~get(input$team_stats_2), mode = "markers",
-                        color = I('red'), name = 'Filtered')
-      }
-      # 
-      # 
-      # p <- plot_ly(data = NHL2, x = ~NHL2[[input$team_stats_1]], y = ~NHL2[[input$team_stats_2]], text = ~Name,
-      #              color = ~Team) %>% 
-      #   layout(xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2))
-      # p
+      p <- NHL_df_env %>% 
+        plot_ly(x = ~get(input$team_stats_1), y = ~get(input$team_stats_2), text = ~Name, color = ~Team) %>%
+          layout(xaxis = list(title = input$team_stats_1) , yaxis = list(title = input$team_stats_2)) %>% 
+          highlight(on = "plotly_selected", off = "plotly_deselect", color = I('red'), selected = attrs_selected(name = 'Selected players'))
+      p
   })
   
   
